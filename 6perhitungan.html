@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Game Hitungan — AI Tutor</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --accent:#6ee7b7;
+    --muted:#94a3b8;
+    --danger:#ff6b6b;
+    --glass: rgba(255,255,255,0.03);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background: radial-gradient(1200px 600px at 10% 10%, rgba(99,102,241,0.12), transparent),
+                radial-gradient(1000px 500px at 90% 90%, rgba(16,185,129,0.06), transparent),
+                var(--bg);
+    color:#e6eef8;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    box-sizing:border-box;
+  }
+
+  .container{
+    width:100%;
+    max-width:420px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:16px;
+    box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+    padding:18px;
+    border: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .top{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+
+  .title{
+    font-weight:600;
+    font-size:18px;
+    letter-spacing:0.2px;
+  }
+
+  .timer{
+    font-size:28px;
+    font-weight:700;
+    margin-top:2px;
+  }
+
+  .level-row{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    margin-top:6px;
+    gap:12px;
+    color:var(--muted);
+    font-size:14px;
+  }
+
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+    border-radius:12px;
+    padding:18px;
+    margin-top:12px;
+    text-align:center;
+    border:1px solid rgba(255,255,255,0.02);
+    min-height:140px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+
+  .problem{
+    font-size:28px;
+    font-weight:700;
+    margin-bottom:10px;
+  }
+  .subtext{
+    font-size:14px;
+    color:var(--muted);
+  }
+
+  .display{
+    margin-top:12px;
+    background:rgba(0,0,0,0.25);
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:20px;
+    text-align:right;
+    letter-spacing:1px;
+    min-height:42px;
+    color:#fff;
+    border:1px solid rgba(255,255,255,0.02);
+  }
+
+  .result-text{
+    margin-top:8px;
+    height:20px;
+    font-size:14px;
+    font-weight:600;
+  }
+  .result-text.ok{ color:var(--accent); }
+  .result-text.bad{ color:var(--danger); }
+
+  .pad{
+    display:grid;
+    grid-template-columns: repeat(3,1fr);
+    gap:10px;
+    margin-top:14px;
+  }
+  button.key{
+    padding:18px 10px;
+    border-radius:10px;
+    border:0;
+    font-size:18px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    color:#eaf4ff;
+    box-shadow: 0 6px 14px rgba(2,6,23,0.5);
+    cursor:pointer;
+    transition: transform .08s ease, box-shadow .08s ease;
+    height:64px;
+  }
+  button.key:active{ transform: translateY(2px) scale(.997); }
+  .key.wide { grid-column: span 3; padding:16px; height:52px; }
+  .controls{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+    justify-content:center;
+  }
+  .small{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .footer-note{
+    margin-top:12px;
+    font-size:12px;
+    color:var(--muted);
+    text-align:center;
+  }
+
+  /* responsive small tweaks */
+  @media (max-width:420px){
+    .container{ padding:14px; border-radius:12px; }
+    .problem{ font-size:24px; }
+    .timer{ font-size:24px; }
+    button.key{ height:58px; }
+  }
+</style>
+</head>
+<body>
+  <div class="container" role="application" aria-label="Game hitungan">
+    <div class="top">
+      <div class="title">Game Perhitungan level+ </div>
+      <div id="timer" class="timer">Waktu: 10s</div>
+      <div class="level-row">
+        <div>Level: <strong id="level">1</strong></div>
+      </div>
+    </div>
+
+    <div class="card" id="card">
+      <div class="problem" id="problem">—</div>
+      <div class="subtext">Soal acak jadi harus cepat ya isi nya</div>
+
+      <div class="display" id="display"> </div>
+      <div class="result-text" id="resultText"></div>
+    </div>
+
+    <div class="pad" aria-hidden="false" id="pad">
+      <!-- keypad 3 columns -->
+      <button class="key" data-val="1">1</button>
+      <button class="key" data-val="2">2</button>
+      <button class="key" data-val="3">3</button>
+
+      <button class="key" data-val="4">4</button>
+      <button class="key" data-val="5">5</button>
+      <button class="key" data-val="6">6</button>
+
+      <button class="key" data-val="7">7</button>
+      <button class="key" data-val="8">8</button>
+      <button class="key" data-val="9">9</button>
+
+      <button class="key" id="btnBack" aria-label="Hapus">⌫</button>
+      <button class="key" data-val="0">0</button>
+      <button class="key" id="btnEnter" aria-label="Kirim">✔</button>
+    </div>
+
+    <div class="controls">
+      <button class="key wide" id="btnReset">Reset Game</button>
+    </div>
+
+    <div class="footer-note"></div>
+  </div>
+
+<script>
+(() => {
+  // --- State ---
+  let level = 1;
+  let timeLeft = 10; // seconds initial
+  let timerId = null;
+  let currentAnswer = null; // numeric
+  let currentExpr = '';
+  const timerEl = document.getElementById('timer');
+  const problemEl = document.getElementById('problem');
+  const displayEl = document.getElementById('display');
+  const resultEl = document.getElementById('resultText');
+  const levelEl = document.getElementById('level');
+
+  // --- Utility: generate question with operators + - × ÷ only ---
+  function generateQuestion(level) {
+    // choose number of operations (1 or 2) to keep readable
+    const numOps = Math.min(1 + Math.floor(level/3), 2); // 1..2 ops
+    const maxBase = 8 + (level - 1) * 3;
+    const opsPool = ['+','-','*','/']; // internal
+    let tokens = [];
+
+    for (let i=0;i<=numOps;i++){
+      // choose numbers (1..maxBase)
+      let n = Math.floor(Math.random() * maxBase) + 1;
+      tokens.push(n);
+      if (i < numOps) {
+        // bias: early levels prefer +/-
+        let op;
+        if (level <= 2) op = (Math.random() < 0.75 ? '+' : '-');
+        else if (level <= 4) op = (Math.random() < 0.55 ? '+' : (Math.random() < 0.8 ? '-' : (Math.random()<0.5?'*':'/')));
+        else op = opsPool[Math.floor(Math.random()*opsPool.length)];
+        // For division, ensure integer result: make next number a divisor of current product
+        if (op === '/') {
+          // make dividend as n * d where d is random small int
+          const d = Math.floor(Math.random() * Math.max(2, Math.min(6, Math.floor(maxBase/2)))) + 1;
+          tokens.push('/'); // operator
+          // replace previous token to be divisible: set previous token to n * d
+          tokens[tokens.length-2] = n * d;
+          // next number is d
+          tokens.push(d);
+          i++; // we consumed an extra number spot
+        } else {
+          tokens.push(op);
+        }
+      }
+    }
+
+    // Build expression from tokens that may include operator symbols
+    // tokens pattern might be [num, op, num, op, num...] but we handled division specially
+    // normalize to expression string usable by eval: replace '*' and '/' as-is
+    // if tokens contains nested slashes inserted earlier, we already included them sequentially
+    // Build expr string
+    let exprParts = [];
+    for (let t of tokens) {
+      exprParts.push(String(t));
+    }
+    // Join and then sanitize in case of duplicate slashes etc (should be fine)
+    let expr = exprParts.join(' ');
+    // Evaluate answer safely
+    let answer;
+    try {
+      // use Function to evaluate in safer manner than eval
+      answer = Function('"use strict"; return (' + expr + ')')();
+      if (!Number.isFinite(answer)) throw new Error('bad');
+      // Round if necessary
+      if (Math.abs(answer - Math.round(answer)) > 0.0001) {
+        answer = Math.round(answer * 100) / 100;
+      } else answer = Math.round(answer);
+    } catch(e) {
+      // fallback to simple addition
+      const a = Math.floor(Math.random()*10)+1;
+      const b = Math.floor(Math.random()*10)+1;
+      expr = a + ' + ' + b;
+      answer = a + b;
+    }
+
+    // For display: replace '*' -> × and '/' -> ÷
+    const displayExpr = expr.replace(/\*/g, '×').replace(/\//g, '÷');
+    return { expr, displayExpr, answer };
+  }
+
+  // --- Timer functions ---
+  function startTimer() {
+    stopTimer();
+    if (typeof timeLeft !== 'number' || timeLeft <= 0) timeLeft = 10;
+    updateTimerDisplay();
+    timerId = setInterval(()=>{
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0){
+        stopTimer();
+        onTimeOut();
+      }
+    }, 1000);
+  }
+  function stopTimer(){
+    if (timerId) { clearInterval(timerId); timerId = null; }
+  }
+  function updateTimerDisplay(){
+    timerEl.textContent = `Waktu: ${timeLeft}s`;
+  }
+
+  // --- Game actions ---
+  function newQuestion(startTimerFlag = true) {
+    const q = generateQuestion(level);
+    currentExpr = q.expr;
+    currentAnswer = q.answer;
+    problemEl.textContent = q.displayExpr;
+    displayEl.textContent = '';
+    resultEl.textContent = '';
+    resultEl.className = 'result-text';
+    if (startTimerFlag) {
+      timeLeft = 10;
+      updateTimerDisplay();
+      startTimer();
+    } else {
+      // keep current timer running (do not reset timeLeft), but ensure it's running
+      updateTimerDisplay();
+      if (!timerId) startTimer();
+    }
+    levelEl.textContent = level;
+  }
+
+  function resetToFirstTimeout() {
+    level = 1;
+    levelEl.textContent = level;
+    resultEl.textContent = 'Waktu habis — Anda ke Lamaan pertama';
+    resultEl.className = 'result-text bad';
+    // after brief message, start new question with timer reset
+    setTimeout(()=> {
+      timeLeft = 10;
+      newQuestion(true);
+    }, 900);
+  }
+
+  function resetToFirstByResetButton(){
+    level = 1;
+    levelEl.textContent = level;
+    resultEl.textContent = 'Reset ke level 1';
+    resultEl.className = 'result-text bad';
+    // new question but keep current timeLeft (per request)
+    setTimeout(()=> {
+      newQuestion(false); // don't reset timer
+    }, 600);
+  }
+
+  function onCorrect() {
+    stopTimer();
+    resultEl.textContent = 'Bener! Naik level ✨';
+    resultEl.className = 'result-text ok';
+    level++;
+    setTimeout(()=> newQuestion(true), 900);
+  }
+
+  function onWrong() {
+    stopTimer();
+    // wrong -> back to level 1 and reset timer (same behavior as time out?), user wanted "kalo sala dari awal lagi ada tesk juga kecil di bawah tulisan nya salah kalo bener naik lavel"
+    resultEl.textContent = 'Salah — kembali ke level 1';
+    resultEl.className = 'result-text bad';
+    level = 1;
+    setTimeout(()=> {
+      timeLeft = 10;
+      newQuestion(true);
+    }, 900);
+  }
+
+  function onTimeOut(){
+    resetToFirstTimeout();
+  }
+
+  // --- Input handling ---
+  function addToDisplay(s){
+    const cur = displayEl.textContent.trim();
+    if (cur.length >= 12) return;
+    // avoid leading zeros like "00"
+    if (cur === '0') displayEl.textContent = s;
+    else displayEl.textContent = (cur + s);
+  }
+
+  function backspaceDisplay(){
+    const cur = displayEl.textContent;
+    displayEl.textContent = cur.slice(0, -1) || '';
+  }
+
+  function submitAnswer(){
+    const raw = displayEl.textContent.trim();
+    if(raw === '') return;
+    const v = Number(raw);
+    if (isNaN(v)) return;
+    // compare numerically; allow small float tolerance
+    if (Math.abs(v - currentAnswer) < 0.001) {
+      onCorrect();
+    } else {
+      onWrong();
+    }
+  }
+
+  // --- Buttons ---
+  document.querySelectorAll('button.key[data-val]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      const val = btn.dataset.val;
+      addToDisplay(val);
+    });
+  });
+
+  document.getElementById('btnBack').addEventListener('click', backspaceDisplay);
+  document.getElementById('btnEnter').addEventListener('click', submitAnswer);
+  document.getElementById('btnReset').addEventListener('click', ()=> {
+    resetToFirstByResetButton();
+  });
+
+  // keyboard support (optional)
+  window.addEventListener('keydown', (e)=>{
+    if (e.key >= '0' && e.key <= '9') addToDisplay(e.key);
+    else if (e.key === 'Backspace') backspaceDisplay();
+    else if (e.key === 'Enter') submitAnswer();
+    else if (e.key === 'Escape') { /* ignore or clear */ }
+  });
+
+  // start game
+  // start timer and question
+  newQuestion(true);
+
+})();
+</script>
+</body>
+</html>
